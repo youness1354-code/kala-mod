@@ -10,7 +10,7 @@ import zipfile
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-BASE_DIR = "/storage/emulated/0/kalamod"
+BASE_DIR = "/tmp/kalamod"
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 FILES = {
     "listings": os.path.join(BASE_DIR, "listings.json"),
