@@ -39,6 +39,10 @@ PROMOTE_DAYS = 3
 LADDER_DAYS = 1
 LISTING_DAYS = 30
 
+# قیمت خدمات ارتقای آگهی - تومان
+FEATURED_PRICE = 57000
+LADDER_PRICE = 29000
+
 
 def load_json(path, default):
     try:
@@ -996,17 +1000,28 @@ def share_listing(listing_id):
     return page("اشتراک‌گذاری", body, user=current_user(), item=item, share_url=share_url)
 
 
-@app.route("/promote/<int:listing_id>")
-@login_required
-def promote(listing_id):
-    item = find_listing(listing_id)
-    user = current_user()
-    if not item:
-        return "آگهی پیدا نشد.", 404
-    if str(item.get("owner_id")) != str(user["id"]):
-        return "فقط صاحب آگهی می‌تواند آن را ارتقا دهد.", 403
-    body = """<div class='card'><h1>🚀 ارتقای آگهی</h1><div class='box'><h3>⭐ آگهی ویژه</h3><p>آگهی ویژه برای ۳ روز در بخش بالای صفحه نمایش داده می‌شود.</p><a class='btn orange' href='{{url_for("activate_featured",listing_id=item.id)}}'>فعال‌سازی آگهی ویژه</a></div><div class='box'><h3>⬆️ نردبان</h3><p>با نردبان، آگهی دوباره در ابتدای لیست جدیدترین‌ها قرار می‌گیرد.</p><a class='btn purple' href='{{url_for("ladder_listing",listing_id=item.id)}}'>اجرای نردبان</a></div><div class='box'><span class='small'>در این نسخه محلی، عملیات رایگان است تا منطق سیستم را کامل تست کنیم. در مرحله پرداخت، قیمت و درگاه اضافه می‌شود.</span></div><a class='btn light' href='{{url_for("listing_detail",listing_id=item.id)}}'>بازگشت</a></div>"""
-    return page("ارتقای آگهی", body, user=user, item=item)
+    body = """<div class='card'><h1>🚀 ارتقای آگهی</h1>
+
+<div class='box'>
+<h3>⭐ آگهی ویژه</h3>
+<p>آگهی ویژه برای ۳ روز در بخش بالای صفحه نمایش داده می‌شود.</p>
+<div class='price'>۵۷٬۰۰۰ تومان</div>
+<a class='btn orange' href='{{url_for("activate_featured",listing_id=item.id)}}'>فعال‌سازی آگهی ویژه — ۵۷٬۰۰۰ تومان</a>
+</div>
+
+<div class='box'>
+<h3>⬆️ نردبان</h3>
+<p>با نردبان، آگهی دوباره در ابتدای لیست جدیدترین‌ها قرار می‌گیرد.</p>
+<div class='price'>۲۹٬۰۰۰ تومان</div>
+<a class='btn purple' href='{{url_for("ladder_listing",listing_id=item.id)}}'>اجرای نردبان — ۲۹٬۰۰۰ تومان</a>
+</div>
+
+<div class='box'>
+<span class='small'>پس از اتصال درگاه پرداخت، پرداخت واقعی قبل از فعال‌سازی انجام می‌شود.</span>
+</div>
+
+<a class='btn light' href='{{url_for("listing_detail",listing_id=item.id)}}'>بازگشت</a>
+</div>"""
 
 
 @app.route("/promote/<int:listing_id>/featured")
