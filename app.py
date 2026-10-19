@@ -79,25 +79,37 @@ users = load_json(FILES["users"], [])
 notifications = load_json(FILES["notifications"], [])
 ratings = load_json(FILES["ratings"], [])
 blocks = load_json(FILES["blocks"], {})
+promotions = load_json(FILES["promotions"], [])
+
+if not isinstance(promotions, list):
+    promotions = []
+
 if not isinstance(ratings, list):
     ratings = []
     save_json(FILES["ratings"], ratings)
+
 if not isinstance(blocks, dict):
     blocks = {}
     save_json(FILES["blocks"], blocks)
 
 if not isinstance(listings, list):
     listings = []
+
 if not isinstance(messages, dict):
     messages = {}
+
 if isinstance(favorites, list):
     favorites = {"legacy": favorites}
+
 if not isinstance(favorites, dict):
     favorites = {}
+
 if not isinstance(reports, list):
     reports = []
+
 if not isinstance(users, list):
     users = []
+
 if not isinstance(notifications, list):
     notifications = []
 
@@ -999,7 +1011,10 @@ def renew_listing(listing_id):
 
 
 @app.route("/share/<int:listing_id>")
-def share_listing(listing_id):
+    user = current_user()
+    if not item:
+        return "آگهی پیدا نشد.", 404
+    if str(item.get("ownerdef share_listing(listing_id):
     item = find_listing(listing_id)
     if not item or (not active_for_public(item) and not is_admin(current_user())):
         return "آگهی پیدا نشد.", 404
@@ -1036,10 +1051,7 @@ def share_listing(listing_id):
 @login_required
 def activate_featured(listing_id):
     item = find_listing(listing_id)
-    user = current_user()
-    if not item:
-        return "آگهی پیدا نشد.", 404
-    if str(item.get("owner_id")) != str(user["id"]):
+_id")) != str(user["id"]):
         return "دسترسی غیرمجاز.", 403
     current_until = parse_iso(item.get("featured_until", ""))
     start = current_until if current_until and current_until > datetime.now() else datetime.now()
