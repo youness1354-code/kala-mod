@@ -1365,7 +1365,100 @@ def admin_toggle_listing(listing_id):
     save_json(FILES["listings"], listings)
     create_notification(item.get("owner_id"), "وضعیت آگهی", f"آگهی «{item.get('title','')}» {'فعال' if item['active'] else 'غیرفعال'} شد.", url_for("listing_detail", listing_id=listing_id))
     return redirect(url_for("admin_panel"))
+@app.route(
+    "/admin/promotions/<promotion_id>/<action>",
+    methods=["POST"]
+)
+@admin_required
+def admin_promotion_action(promotion_id, action):
+    if action not in ("approve", "reject"):
+        return "عملیات نامعتبر است.", 400
 
+    promotion = next(
+        (
+            p for p in promotions
+            if str(p.get("id")) == str(promotion_id)
+        ),
+        None
+    )
+
+    if not promotion:
+        return "درخواست پیدا نشد.", 404
+
+    if promotion.get("status") != "pending":
+        return "این درخواست قبلاً بررسی شده است.", 400
+
+    item = find_listing(promotion.get("listing_id"))
+
+    if action == "approve":
+        if not item:
+            return "آگهی پیدا نشد؛ درخواست هنوز در انتظار است.", 404
+
+        if not item.get("active", True):
+            return "این آگهی غیرفعال است؛ ابتدا وضعیت آن را بررسی کن.", 400
+
+        if promotion.get("type") == "featured":
+            current_until = parse_iso(
+                item.get("featured_until", "")
+            )
+            now = datetime.now()
+
+            start = (
+                current_until
+                if current_until and current_until > now
+                else now
+            )
+
+            item["featured_until"] = (
+                start + timedelta(days=PROMOTE_DAYS)
+            ).isoformat(timespec="seconds")
+
+        elif promotion.get("type") == "ladder":
+            last = parse_iso(item.get("last_ladder_at", ""))
+
+            if last and datetime.now() - last < timedelta(hours=12):
+                return (
+                    "این آگهی در ۱۲ ساعت گذشته نردبان شده است. "
+                    "درخواست هنوز در انتظار بررسی است.",
+                    400
+                )
+
+            item["last_ladder_at"] = iso_now()
+            item["created_at"] = now_text()
+
+        else:
+            return "نوع درخواست نامعتبر است.", 400
+
+        save_json(FILES["listings"], listings)
+
+        promotion["status"] = "approved"
+        promotion["reviewed_at"] = now_text()
+
+        create_notification(
+            promotion.get("user_id"),
+            "درخواست ارتقا تأیید شد",
+            f"درخواست ارتقای آگهی «{item.get('title', '')}» تأیید شد.",
+            url_for(
+                "listing_detail",
+                listing_id=item.get("id")
+            )
+        )
+
+    else:
+        promotion["status"] = "rejected"
+        promotion["reviewed_at"] = now_text()
+
+        create_notification(
+            promotion.get("user_id"),
+            "درخواست ارتقا رد شد",
+            "درخواست ارتقای آگهی شما توسط مدیر رد شد. "
+            "برای پیگیری با پشتیبانی تماس بگیرید: 09184285205",
+            url_for("notifications")
+        )
+
+    save_json(FILES["promotions"], promotions)
+
+    return redirect(url_for("admin_promotions"))
 
 @app.route("/admin/listing/delete/<int:listing_id>", methods=["POST"])
 @admin_required
