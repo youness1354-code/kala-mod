@@ -1050,35 +1050,68 @@ def renew_listing(listing_id):
 @app.route("/promote/<int:listing_id>/featured")
 @login_required
 def activate_featured(listing_id):
-    item = find_listing(listing_id)
-_id")) != str(user["id"]):
-        return "دسترسی غیرمجاز.", 403
-    current_until = parse_iso(item.get("featured_until", ""))
-    start = current_until if current_until and current_until > datetime.now() else datetime.now()
-    item["featured_until"] = (start + timedelta(days=PROMOTE_DAYS)).isoformat(timespec="seconds")
-    save_json(FILES["listings"], listings)
-    create_notification(user["id"], "آگهی ویژه فعال شد", f"آگهی «{item.get('title','')}» تا {item['featured_until']} ویژه است.", url_for("listing_detail", listing_id=listing_id))
-    return redirect(url_for("listing_detail", listing_id=listing_id))
+    return create_promotion_request(listing_id, "featured")
 
 
 @app.route("/promote/<int:listing_id>/ladder")
 @login_required
 def ladder_listing(listing_id):
+    return create_promotion_request(listing_id, "ladder")
+
+
+def create_promotion_request(listing_id, promotion_type):
     item = find_listing(listing_id)
     user = current_user()
+
     if not item:
         return "آگهی پیدا نشد.", 404
+
     if str(item.get("owner_id")) != str(user["id"]):
         return "دسترسی غیرمجاز.", 403
-    last = parse_iso(item.get("last_ladder_at", ""))
-    if last and datetime.now() - last < timedelta(hours=12):
-        return "نردبان این آگهی در ۱۲ ساعت گذشته اجرا شده است. کمی بعد دوباره امتحان کن.", 400
-    item["last_ladder_at"] = iso_now()
-    item["created_at"] = now_text()
-    save_json(FILES["listings"], listings)
-    create_notification(user["id"], "نردبان انجام شد", f"آگهی «{item.get('title','')}» به ابتدای آگهی‌های جدید منتقل شد.", url_for("listing_detail", listing_id=listing_id))
-    return redirect(url_for("listing_detail", listing_id=listing_id))
 
+    if promotion_type not in ("featured", "ladder"):
+        return "نوع درخواست نامعتبر است.", 400
+
+    price = FEATURED_PRICE if promotion_type == "featured" else LADDER_PRICE
+
+    pending = next(
+        (
+            p for p in promotions
+            if str(p.get("user_id")) == str(user["id"])
+            and str(p.get("listing_id")) == str(listing_id)
+            and p.get("type") == promotion_type
+            and p.get("status") == "pending"
+        ),
+        None
+    )
+
+    if pending:
+        return "درخواست این خدمت قبلاً ثبت شده و منتظر بررسی مدیر است."
+
+    promotions.append({
+        "id": uuid.uuid4().hex,
+        "user_id": user["id"],
+        "listing_id": listing_id,
+        "type": promotion_type,
+        "price": price,
+        "status": "pending",
+        "created_at": now_text()
+    })
+
+    save_json(FILES["promotions"], promotions)
+
+    create_notification(
+        user["id"],
+        "درخواست ارتقا ثبت شد",
+        f"درخواست شما برای آگهی «{item.get('title', '')}» ثبت شد و منتظر تأیید مدیر است. مبلغ: {price:,} تومان.",
+        url_for("listing_detail", listing_id=listing_id)
+    )
+
+    return (
+        "درخواست ثبت شد و هنوز فعال نیست. "
+        "پس از پرداخت و تأیید مدیر، خدمت فعال خواهد شد. "
+        "برای هماهنگی پرداخت با شماره 09184285205 تماس بگیرید."
+    )
 
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
