@@ -9,9 +9,12 @@ import re
 import zipfile
 from datetime import datetime, timedelta
 
+
 app = Flask(__name__)
+
 BASE_DIR = "/tmp/kalamod"
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+
 FILES = {
     "listings": os.path.join(BASE_DIR, "listings.json"),
     "messages": os.path.join(BASE_DIR, "messages.json"),
@@ -21,16 +24,21 @@ FILES = {
     "notifications": os.path.join(BASE_DIR, "notifications.json"),
     "ratings": os.path.join(BASE_DIR, "ratings.json"),
     "blocks": os.path.join(BASE_DIR, "blocks.json"),
+    "promotions": os.path.join(BASE_DIR, "promotions.json"),
 }
+
 USERS_FILE = FILES["users"]
 DATA_FILE = FILES["listings"]
+
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "Kalamod@2026"
+
 app.secret_key = "kalamod-local-secret-change-later"
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 os.makedirs(BASE_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 CATEGORIES = ["همه", "موبایل", "لوازم دیجیتال", "خودرو", "املاک", "لوازم خانه", "پوشاک", "ورزش", "کتاب", "سایر"]
 EXT = {"jpg", "jpeg", "png", "webp", "gif"}
