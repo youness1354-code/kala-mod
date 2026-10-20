@@ -1290,22 +1290,149 @@ def settings():
     body = """<div class='card'><h1>⚙️ تنظیمات</h1><div class='box'><strong>نام کاربری</strong><br>{{user.username}}</div><div class='box'><strong>شناسه کاربر</strong><br><span class='small'>{{user.id}}</span></div><div class='box'><strong>وضعیت حساب</strong><br>{% if user.disabled %}مسدود{% else %}فعال{% endif %}</div><div class='actions'><a class='btn light' href='{{url_for("profile")}}'>👤 پروفایل</a><a class='btn light' href='{{url_for("inbox")}}'>💬 پیام‌ها</a><a class='btn purple' href='{{url_for("change_password")}}'>🔐 تغییر رمز</a><a class='btn light' href='{{url_for("blocked_page")}}'>🚫 مسدودشده‌ها</a><a class='btn red' href='{{url_for("logout")}}'>خروج</a><form method='post' action='{{url_for("delete_account")}}' onsubmit='return confirm("حذف حساب و آگهی‌های آن قطعی است؟")'><button class='red'>🗑 حذف حساب</button></form></div></div>"""
     return page("تنظیمات", body, user=user)
 
-
 @app.route("/admin")
 @admin_required
 def admin_panel():
     query = request.args.get("q", "").strip().lower()
     status = request.args.get("status", "").strip()
     listing_filter = request.args.get("listing_status", "").strip()
-    ls = [x for x in listings if not query or query in str(x.get("title", "")).lower() or query in str(x.get("id", "")).lower()]
-    us = [u for u in users if not query or query in str(u.get("username", "")).lower()]
-    rs = [r for r in reports if not status or r.get("status") == status]
+
+    ls = [
+        x for x in listings
+        if not query
+        or query in str(x.get("title", "")).lower()
+        or query in str(x.get("id", "")).lower()
+    ]
+
+    us = [
+        u for u in users
+        if not query or query in str(u.get("username", "")).lower()
+    ]
+
+    rs = [
+        r for r in reports
+        if not status or r.get("status") == status
+    ]
+
     if listing_filter == "active":
         ls = [x for x in ls if x.get("active", True)]
     elif listing_filter == "inactive":
         ls = [x for x in ls if not x.get("active", True)]
-    body = """<div class='statgrid'><div class='stat'><b>{{lc}}</b>آگهی</div><div class='stat'><b>{{uc}}</b>کاربر</div><div class='stat'><b>{{rc}}</b>گزارش</div><div class='stat'><b>{{fc}}</b>ویژه فعال</div><div class='stat'><b>{{views}}</b>بازدید</div><div class='stat'><b>{{sold}}</b>فروخته‌شده</div></div><div class='card'><h1>🛠 پنل مدیریت</h1><div class='actions'><a class='btn purple' href='{{url_for("admin_backup")}}'>💾 پشتیبان‌گیری</a><a class='btn blue' href='{{url_for("admin_analytics")}}'>📊 آمار کامل</a></div><form method='get'><input name='q' value='{{q}}' placeholder='جستجوی آگهی یا کاربر'><select name='status'><option value=''>همه گزارش‌ها</option><option value='new' {% if status=='new' %}selected{% endif %}>جدید</option><option value='resolved' {% if status=='resolved' %}selected{% endif %}>رسیدگی‌شده</option></select><select name='listing_status'><option value=''>همه آگهی‌ها</option><option value='active' {% if listing_filter=='active' %}selected{% endif %}>فعال</option><option value='inactive' {% if listing_filter=='inactive' %}selected{% endif %}>غیرفعال</option></select><button>فیلتر</button></form></div><div class='card'><h2>📦 آگهی‌ها</h2>{% for x in ls[:100] %}<div class='box'><b>#{{x.id}} — {{x.title}}</b><div class='small'>{{x.price}} · {{x.category}} · {% if x.active %}فعال{% else %}غیرفعال{% endif %} · بازدید {{x.views}}</div><div class='actions'><form method='post' action='{{url_for("admin_toggle_listing",listing_id=x.id)}}'><button class='light'>{% if x.active %}غیرفعال کردن{% else %}فعال کردن{% endif %}</button></form><a class='btn' href='{{url_for("listing_detail",listing_id=x.id)}}'>مشاهده</a><form method='post' action='{{url_for("admin_delete_listing",listing_id=x.id)}}' onsubmit='return confirm("حذف شود؟")'><button class='red'>حذف</button></form></div></div>{% else %}<p>آگهی‌ای نیست.</p>{% endfor %}</div><div class='card'><h2>👥 کاربران</h2>{% for u in us[:100] %}<div class='box'><b>{{u.username}}</b> · {{u.role}} · {% if u.disabled %}مسدود{% else %}فعال{% endif %}{% if u.role!='admin' %}<form method='post' action='{{url_for("admin_toggle_user",user_id=u.id)}}'><button class='light'>{% if u.disabled %}رفع مسدودی{% else %}مسدود کردن{% endif %}</button></form>{% endif %}</div>{% endfor %}</div><div class='card'><h2>🚨 گزارش‌ها</h2>{% for r in rs[:100] %}<div class='box'><b>{{r.get('type','گزارش')}}</b> · {{r.get('reason','')}} · {{r.get('status','new')}}</div><p>{{r.get('details',r.get('message',''))}}</p>{% if r.get('message_text') %}<p>پیام: {{r.message_text}}</p>{% endif %}<div class='small'>{{r.get('created_at','')}}</div>{% if r.get('status')!='resolved' %}<form method='post' action='{{url_for("admin_resolve_report",report_id=r.id)}}'><button>رسیدگی شد</button></form>{% endif %}{% else %}<p>گزارشی نیست.</p>{% endfor %}</div>"""
-    return page("پنل مدیریت", body, user=current_user(), ls=ls, us=us, rs=rs, lc=len(listings), uc=len(users), rc=len(reports), fc=sum(1 for x in listings if featured_active(x)), views=sum(int(x.get('views',0) or 0) for x in listings), sold=sum(1 for x in listings if x.get('status')=='sold'), q=query, status=status, listing_filter=listing_filter)
+
+    body = """<div class='statgrid'>
+    <div class='stat'><b>{{lc}}</b>آگهی</div>
+    <div class='stat'><b>{{uc}}</b>کاربر</div>
+    <div class='stat'><b>{{rc}}</b>گزارش</div>
+    <div class='stat'><b>{{fc}}</b>ویژه فعال</div>
+    <div class='stat'><b>{{views}}</b>بازدید</div>
+    <div class='stat'><b>{{sold}}</b>فروخته‌شده</div>
+    </div>
+
+    <div class='card'>
+    <h1>🛠 پنل مدیریت</h1>
+    <div class='actions'>
+    <a class='btn purple' href='{{url_for("admin_backup")}}'>💾 پشتیبان‌گیری</a>
+    <a class='btn blue' href='{{url_for("admin_analytics")}}'>📊 آمار کامل</a>
+    <a class='btn purple' href='{{url_for("admin_promotions")}}'>💳 درخواست‌های ارتقا</a>
+    </div>
+
+    <form method='get'>
+    <input name='q' value='{{q}}' placeholder='جستجوی آگهی یا کاربر'>
+    <select name='status'>
+    <option value=''>همه گزارش‌ها</option>
+    <option value='new' {% if status=='new' %}selected{% endif %}>جدید</option>
+    <option value='resolved' {% if status=='resolved' %}selected{% endif %}>رسیدگی‌شده</option>
+    </select>
+    <select name='listing_status'>
+    <option value=''>همه آگهی‌ها</option>
+    <option value='active' {% if listing_filter=='active' %}selected{% endif %}>فعال</option>
+    <option value='inactive' {% if listing_filter=='inactive' %}selected{% endif %}>غیرفعال</option>
+    </select>
+    <button>فیلتر</button>
+    </form>
+    </div>
+
+    <div class='card'>
+    <h2>📦 آگهی‌ها</h2>
+    {% for x in ls[:100] %}
+    <div class='box'>
+    <b>#{{x.id}} — {{x.title}}</b>
+    <div class='small'>
+    {{x.price}} · {{x.category}} ·
+    {% if x.active %}فعال{% else %}غیرفعال{% endif %}
+    · بازدید {{x.views}}
+    </div>
+    <div class='actions'>
+    <form method='post' action='{{url_for("admin_toggle_listing",listing_id=x.id)}}'>
+    <button class='light'>{% if x.active %}غیرفعال کردن{% else %}فعال کردن{% endif %}</button>
+    </form>
+    <a class='btn' href='{{url_for("listing_detail",listing_id=x.id)}}'>مشاهده</a>
+    <form method='post' action='{{url_for("admin_delete_listing",listing_id=x.id)}}' onsubmit='return confirm("حذف شود؟")'>
+    <button class='red'>حذف</button>
+    </form>
+    </div>
+    </div>
+    {% else %}
+    <p>آگهی‌ای نیست.</p>
+    {% endfor %}
+    </div>
+
+    <div class='card'>
+    <h2>👥 کاربران</h2>
+    {% for u in us[:100] %}
+    <div class='box'>
+    <b>{{u.username}}</b> · {{u.role}} ·
+    {% if u.disabled %}مسدود{% else %}فعال{% endif %}
+    {% if u.role!='admin' %}
+    <form method='post' action='{{url_for("admin_toggle_user",user_id=u.id)}}'>
+    <button class='light'>{% if u.disabled %}رفع مسدودی{% else %}مسدود کردن{% endif %}</button>
+    </form>
+    {% endif %}
+    </div>
+    {% endfor %}
+    </div>
+
+    <div class='card'>
+    <h2>🚨 گزارش‌ها</h2>
+    {% for r in rs[:100] %}
+    <div class='box'>
+    <b>{{r.get('type','گزارش')}}</b> ·
+    {{r.get('reason','')}} · {{r.get('status','new')}}
+    </div>
+    <p>{{r.get('details',r.get('message',''))}}</p>
+    {% if r.get('message_text') %}
+    <p>پیام: {{r.message_text}}</p>
+    {% endif %}
+    <div class='small'>{{r.get('created_at','')}}</div>
+    {% if r.get('status')!='resolved' %}
+    <form method='post' action='{{url_for("admin_resolve_report",report_id=r.id)}}'>
+    <button>رسیدگی شد</button>
+    </form>
+    {% endif %}
+    {% else %}
+    <p>گزارشی نیست.</p>
+    {% endfor %}
+    </div>"""
+
+    return page(
+        "پنل مدیریت",
+        body,
+        user=current_user(),
+        ls=ls,
+        us=us,
+        rs=rs,
+        lc=len(listings),
+        uc=len(users),
+        rc=len(reports),
+        fc=sum(1 for x in listings if featured_active(x)),
+        views=sum(int(x.get("views", 0) or 0) for x in listings),
+        sold=sum(1 for x in listings if x.get("status") == "sold"),
+        q=query,
+        status=status,
+        listing_filter=listing_filter
+    )
+
+
 @app.route("/admin/promotions")
 @admin_required
 def admin_promotions():
@@ -1313,6 +1440,9 @@ def admin_promotions():
         p for p in promotions
         if p.get("status") == "pending"
     ]
+
+مهم: این کد در انتهای تابع "admin_promotions()" هنوز ادامه می‌خواهد. اگر ادامهٔ تابع را حذف کرده‌ای، فقط همین بخش کافی نیست؛ آن را حذف نکن و ادامهٔ کد قبلی "admin_promotions()" را بلافاصله بعد از این قسمت قرار بده. همچنین اگر مسیرهای "admin_backup" یا "admin_analytics" در برنامه تعریف نشده باشند، باید جداگانه بررسی شوند.
+
 
     body = """
     <div class="card">
