@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "کالا مود",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "کالا مود",
+  "start_url": "/",
+  "theme_color": "#795548",
+  "id": "kala-mod",
+  "description": "بازار آنلاین خرید و فروش کالا؛ ثبت آگهی و پیدا کردن محصولات"
+}
