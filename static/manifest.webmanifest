@@ -1,0 +1,13 @@
+{
+  "id": "/",
+  "name": "کالا مود",
+  "short_name": "کالا مود",
+  "description": "بازار آنلاین خرید و فروش کالا؛ ثبت آگهی و پیدا کردن محصولات",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#795548",
+  "lang": "fa",
+  "dir": "rtl"
+}
