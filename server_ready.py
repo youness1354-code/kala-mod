@@ -5,12 +5,12 @@ import re
 BASE = os.path.dirname(os.path.abspath(__file__))
 
 # فایل اصلی برنامه
-APP_FILE = os.path.join(BASE, "app.py")
+APP_FILE = os.path.join(BASE, "kala_mod_fixed.py")
 
 # بررسی وجود فایل برنامه
 if not os.path.isfile(APP_FILE):
     raise FileNotFoundError(
-        "فایل app.py در مخزن پیدا نشد."
+        "فایل kala_mod_fixed.py در مخزن پیدا نشد."
     )
 
 # خواندن کد برنامه
